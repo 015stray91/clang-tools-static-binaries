@@ -1,53 +1,79 @@
-name: Pre-Build Ladder (LLVM 12-17)
+name: Clang-prebuilt-static-Builder (Ubuntu 22.04)
 
 on:
+  push:
+    branches: [ "master", "main" ]
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * 0'
 
 jobs:
-  build-ladder:
-    name: Build LLVM ${{ matrix.version }}
+  build-u22:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: [12, 13, 14, 15, 16, 17]
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Clone This Repository
+        uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.x'
 
-      - name: Install build deps
+      - name: Install CMake Only
         run: |
-          sudo apt-get update && sudo apt-get install -y \
-            build-essential cmake ninja-build git \
-            libzstd-dev libz-dev liblz4-dev \
-            libcurl4-openssl-dev libssl-dev zlib1g-dev
+          sudo apt-get update
+          sudo apt-get install -y cmake
 
-      - name: Build LLVM ${{ matrix.version }}
+      # --- CLANG 12 ARM64 LINEAR BUILDOUT ---
+      - name: Python Build Clang 12 ARM64
+        run: python3 build.py --version 12 --platfrom linux-arm64
+
+      - name: CMake Link Clang 12 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 12 ARM64 Artifact
         run: |
-          python3 build.py --version ${{ matrix.version }} \
-                           --platform linux-amd64 \
-                           --build-dir /tmp/llvm-build
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 12 ARM64 [skip ci]" && git push
 
-      - name: Stage binaries to repo
+      # --- CLANG 12 AMD64 LINEAR BUILDOUT ---
+      - name: Python Build Clang 12 AMD64
+        run: python3 build.py --version 12 --platfrom linux-amd64
+
+      - name: CMake Link Clang 12 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 12 AMD64 Artifact
         run: |
-          mkdir -p llvm-binaries/llvm-${{ matrix.version }}
-          cp -r /tmp/llvm-build/* llvm-binaries/llvm-${{ matrix.version }}/ 2>/dev/null || true
-          find llvm-binaries/llvm-${{ matrix.version }}/bin/ -type f | head -20
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 12 AMD64 [skip ci]" && git push
 
-      - name: Commit and push
+      # --- CLANG 13 ARM64 LINEAR BUILDOUT ---
+      - name: Python Build Clang 13 ARM64
+        run: python3 build.py --version 13 --platfrom linux-arm64
+
+      - name: CMake Link Clang 13 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 13 ARM64 Artifact
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add llvm-binaries/llvm-${{ matrix.version }}/
-          git commit -m "ci: add LLVM ${{ matrix.version }} binaries"
-          git push
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 13 ARM64 [skip ci]" && git push
 
+      # --- CLANG 13 AMD64 LINEAR BUILDOUT ---
+      - name: Python Build Clang 13 AMD64
+        run: python3 build.py --version 13 --platfrom linux-amd64
+
+      - name: CMake Link Clang 13 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 13 AMD64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 13 AMD64 [skip ci]" && git push
+          
