@@ -1,0 +1,130 @@
+name: Clang-prebuilt Builder (Ubuntu 24.04)
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-u24:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone This Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install CMake Only
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake
+
+      # --- CLANG 14 ARM64 ---
+      - name: Python Build Clang 14 ARM64
+        run: python3 build.py --version 14 --platfrom linux-arm64
+
+      - name: CMake Link Clang 14 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 14 ARM64 Artifact
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 14 ARM64 [skip ci]" && git push
+
+      # --- CLANG 14 AMD64 ---
+      - name: Python Build Clang 14 AMD64
+        run: python3 build.py --version 14 --platfrom linux-amd64
+
+      - name: CMake Link Clang 14 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 14 AMD64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 14 AMD64 [skip ci]" && git push
+
+      # --- CLANG 15 ARM64 ---
+      - name: Python Build Clang 15 ARM64
+        run: python3 build.py --version 15 --platfrom linux-arm64
+
+      - name: CMake Link Clang 15 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 15 ARM64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 15 ARM64 [skip ci]" && git push
+
+      # --- CLANG 15 AMD64 ---
+      - name: Python Build Clang 15 AMD64
+        run: python3 build.py --version 15 --platfrom linux-amd64
+
+      - name: CMake Link Clang 15 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 15 AMD64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 15 AMD64 [skip ci]" && git push
+
+      # --- CLANG 16 ARM64 ---
+      - name: Python Build Clang 16 ARM64
+        run: python3 build.py --version 16 --platfrom linux-arm64
+
+      - name: CMake Link Clang 16 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 16 ARM64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 16 ARM64 [skip ci]" && git push
+
+      # --- CLANG 16 AMD64 ---
+      - name: Python Build Clang 16 AMD64
+        run: python3 build.py --version 16 --platfrom linux-amd64
+
+      - name: CMake Link Clang 16 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 16 AMD64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 16 AMD64 [skip ci]" && git push
+
+      # --- CLANG 17 ARM64 ---
+      - name: Python Build Clang 17 ARM64
+        run: python3 build.py --version 17 --platfrom linux-arm64
+
+      - name: CMake Link Clang 17 ARM64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 17 ARM64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 17 ARM64 [skip ci]" && git push
+
+      # --- CLANG 17 AMD64 ---
+      - name: Python Build Clang 17 AMD64
+        run: python3 build.py --version 17 --platfrom linux-amd64
+
+      - name: CMake Link Clang 17 AMD64
+        run: cmake --build build/ --config Release || true
+
+      - name: Save Clang 17 AMD64 Artifact
+        run: |
+          git pull --rebase
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Save Clang 17 AMD64 [skip ci]" && git push
