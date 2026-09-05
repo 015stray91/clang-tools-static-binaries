@@ -1,18 +1,21 @@
-name: Clang-prebuilt-static-Builder (Ubuntu 22.04)
+name: Release Builder (Ubuntu 22.04)
 
 on:
   push:
     branches: [ "master", "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-u22:
     runs-on: ubuntu-22.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Clone This Repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -24,56 +27,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y cmake
 
-      # --- CLANG 12 ARM64 LINEAR BUILDOUT ---
-      - name: Python Build Clang 12 ARM64
-        run: python3 build.py --version 12 --platfrom linux-arm64
-
-      - name: CMake Link Clang 12 ARM64
-        run: cmake --build build/ --config Release || true
-
-      - name: Save Clang 12 ARM64 Artifact
+      - name: Initialize GitHub Release Target
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Save Clang 12 ARM64 [skip ci]" && git push
+          gh release create v1.0.0-statics --title "Static Clang Binaries" --notes "Automated static builds" || true
 
-      # --- CLANG 12 AMD64 LINEAR BUILDOUT ---
-      - name: Python Build Clang 12 AMD64
-        run: python3 build.py --version 12 --platfrom linux-amd64
-
-      - name: CMake Link Clang 12 AMD64
-        run: cmake --build build/ --config Release || true
-
-      - name: Save Clang 12 AMD64 Artifact
+      # --- CLANG 12 & 13 (ARM64 & AMD64) ---
+      - name: Build and Upload Clang 12 and 13 Binaries
         run: |
-          git pull --rebase
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Save Clang 12 AMD64 [skip ci]" && git push
-
-      # --- CLANG 13 ARM64 LINEAR BUILDOUT ---
-      - name: Python Build Clang 13 ARM64
-        run: python3 build.py --version 13 --platfrom linux-arm64
-
-      - name: CMake Link Clang 13 ARM64
-        run: cmake --build build/ --config Release || true
-
-      - name: Save Clang 13 ARM64 Artifact
-        run: |
-          git pull --rebase
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Save Clang 13 ARM64 [skip ci]" && git push
-
-      # --- CLANG 13 AMD64 LINEAR BUILDOUT ---
-      - name: Python Build Clang 13 AMD64
-        run: python3 build.py --version 13 --platfrom linux-amd64
-
-      - name: CMake Link Clang 13 AMD64
-        run: cmake --build build/ --config Release || true
-
-      - name: Save Clang 13 AMD64 Artifact
-        run: |
-          git pull --rebase
-          git add .
-          git diff-index --quiet HEAD || git commit -m "Save Clang 13 AMD64 [skip ci]" && git push
+          for ver in 12 13; do
+            for plat in linux-arm64 linux-amd64; do
+              python3 build.py --version $ver --platform $plat
+              cmake --build build/ --config Release || true
+              gh release upload v1.0.0-statics build/bin/* --clobber
+            done
+          done
           
