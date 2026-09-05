@@ -1,0 +1,92 @@
+name: Pre-Build Ladder (LLVM 12-17)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Rebuild weekly to keep artifacts fresh
+    - cron: '0 0 * * 0'
+
+jobs:
+  build-ladder:
+    name: Build Clang ${{ matrix.version }} (linux-amd64, static)
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [12, 13, 14, 15, 16, 17]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build git \
+                                   libzstd-dev libz-dev liblz4-dev \
+                                   libcurl4-openssl-dev libssl-dev \
+                                   zlib1g-dev
+
+      - name: Build Clang ${{ matrix.version }} static binaries
+        run: |
+          python3 build.py --version ${{ matrix.version }} \
+                           --platform linux-amd64 \
+                           --build-dir /tmp/ladder-build
+
+      - name: Stage artifacts
+        run: |
+          mkdir -p artifacts/llvm-${{ matrix.version }}
+          # Find the built binaries and stage them
+          find /tmp/ladder-build -name "clang-*" -o -name "opt-*" \
+                                  -o -name "llvm-*" -o -name "lld*" \
+                                  -o -name "lld-*" -o -name "clang-tools-*" 2>/dev/null | \
+            head -50 || true
+          cp -r /tmp/ladder-build/* artifacts/llvm-${{ matrix.version }}/ 2>/dev/null || true
+
+      - name: Upload static binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-static-${{ matrix.version }}
+          path: artifacts/llvm-${{ matrix.version }}/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  # Combine all into a single downloadable release
+  publish-release:
+    name: Publish ladder release
+    needs: build-ladder
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/ladder-artifacts
+
+      - name: Stage complete ladder
+        run: |
+          mkdir -p /tmp/complete-ladder
+          for v in 12 13 14 15 16 17; do
+            if [ -d "/tmp/ladder-artifacts/clang-static-$v" ]; then
+              cp -r "/tmp/ladder-artifacts/clang-static-$v" "/tmp/complete-ladder/llvm-$v"
+            fi
+          done
+          ls -la /tmp/complete-ladder/
+
+      - name: Create release tarball
+        run: |
+          cd /tmp
+          tar -cJf complete-ladder.tar.xz complete-ladder/
+          ls -la complete-ladder.tar.xz
+
+      - name: Upload complete ladder release
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-ladder
+          path: /tmp/complete-ladder.tar.xz
+          retention-days: 90
+
