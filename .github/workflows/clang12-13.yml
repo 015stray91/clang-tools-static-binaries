@@ -1,8 +1,8 @@
 name: Release Builder (Ubuntu 22.04)
 
 on:
-  push:
-    branches: [ "master", "main" ]
+  # Regulars ship upstream (cpp-linter releases llvm-12..23) — never auto-build.
+  # Manual dispatch only, for gap-fills.
   workflow_dispatch:
 
 permissions:
