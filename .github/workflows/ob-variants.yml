@@ -1,0 +1,146 @@
+name: Ob Variant Builder
+
+# Static obfuscator-variant builds, version-to-version against the regulars.
+# Ubuntu env rule (per clang base): 12-13 -> ubuntu-22.04 + gcc-10
+# (matches upstream linux recipe and the <14 compiler rule in build.py);
+# 14+ -> ubuntu-24.04 + gcc-12 (this fork's 14+ compiler rule).
+# Each arch builds NATIVELY on its own runner (unlike the regular workflows,
+# which loop both platform labels on one amd64 runner).
+# Obfvious stays dispatch-only: Windows-first upstream, linux build unverified.
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - ".github/workflows/ob-variants.yml"
+      - "build.py"
+      - "ob-variants.json"
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "Single variant to build (default: all in matrix)"
+        required: false
+        default: ""
+
+permissions: {}
+
+jobs:
+  build-ob:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- base 12 (ubuntu 22.04 + gcc 10) ---
+          - variant: Pluto-Obfuscator
+            platform: linux-amd64
+            runner: ubuntu-22.04
+            gcc: "10"
+          - variant: Pluto-Obfuscator
+            platform: linux-arm64
+            runner: ubuntu-22.04-arm
+            gcc: "10"
+          - variant: HikariSummer
+            platform: linux-amd64
+            runner: ubuntu-22.04
+            gcc: "10"
+          - variant: HikariSummer
+            platform: linux-arm64
+            runner: ubuntu-22.04-arm
+            gcc: "10"
+          # --- base 14+ (ubuntu 24.04 + gcc 12) ---
+          - variant: Hikari
+            platform: linux-amd64
+            runner: ubuntu-24.04
+            gcc: "12"
+          - variant: Hikari
+            platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            gcc: "12"
+          - variant: HimitsuObfuscator
+            platform: linux-amd64
+            runner: ubuntu-24.04
+            gcc: "12"
+          - variant: HimitsuObfuscator
+            platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            gcc: "12"
+          - variant: Hallucina
+            platform: linux-amd64
+            runner: ubuntu-24.04
+            gcc: "12"
+          - variant: Hallucina
+            platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            gcc: "12"
+          - variant: Hikari-LLVM19
+            platform: linux-amd64
+            runner: ubuntu-24.04
+            gcc: "12"
+          - variant: Hikari-LLVM19
+            platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            gcc: "12"
+          - variant: ollvm
+            platform: linux-amd64
+            runner: ubuntu-24.04
+            gcc: "12"
+          - variant: ollvm
+            platform: linux-arm64
+            runner: ubuntu-24.04-arm
+            gcc: "12"
+    runs-on: ${{ matrix.runner }}
+    permissions: {}
+    env:
+      CMAKE_GENERATOR: Ninja
+    steps:
+      - name: Clone This Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install build deps (cmake, ninja, gcc ${{ matrix.gcc }})
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build build-essential gcc-${{ matrix.gcc }} g++-${{ matrix.gcc }} git
+
+      - name: Build ${{ matrix.variant }} for ${{ matrix.platform }}
+        if: inputs.variant == '' || inputs.variant == matrix.variant
+        run: |
+          python3 build.py --variant "${{ matrix.variant }}" --platform "${{ matrix.platform }}"
+
+      - name: Upload artifacts
+        if: inputs.variant == '' || inputs.variant == matrix.variant
+        uses: actions/upload-artifact@v4
+        with:
+          name: ob-${{ matrix.variant }}-${{ matrix.platform }}
+          path: tools/toolchain/clang-ob/*
+          if-no-files-found: warn
+          retention-days: 3
+
+  publish-ob:
+    needs: build-ob
+    if: always() && needs.build-ob.result != 'cancelled' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download all ob artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: 'ob-*'
+          merge-multiple: true
+
+      - name: Initialize Ob Release Target
+        run: |
+          gh release create v1.0.0-ob-statics --title "Static Obfuscator Binaries" --notes "Automated static ob-variant builds (version-to-version against regulars)" || true
+
+      - name: Publish ob binaries
+        run: |
+          ls artifacts
+          gh release upload v1.0.0-ob-statics artifacts/* --clobber

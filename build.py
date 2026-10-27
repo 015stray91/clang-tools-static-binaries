@@ -40,6 +40,22 @@ def _load_releases() -> dict[str, str]:
 
 RELEASES: dict[str, str] = _load_releases()
 
+
+def _load_variants() -> dict[str, Any]:
+    """Load the obfuscator variant registry from ob-variants.json (if present)."""
+    variants_path = Path(__file__).parent / "ob-variants.json"
+    if not variants_path.exists():
+        return {}
+    with open(variants_path) as f:
+        return json.load(f).get("variants", {})
+
+
+VARIANTS: dict[str, Any] = _load_variants()
+
+# Extra build targets for ob variants: the obfuscating compiler itself plus
+# opt for -load style passes, on top of the regular tool set.
+OB_EXTRA_TARGETS = ["clang", "opt"]
+
 TOOLS = [
     "clang-format",
     "clang-query",
@@ -164,12 +180,107 @@ def cmake_args_linux_arm64(version: str) -> list[str]:
     return args
 
 
+def build_variant(variant: str, platform_key: str | None, version_override: str | None) -> None:
+    """Build the static tool set from an obfuscator fork.
+
+    Version-to-version basis: the variant parallels the regular build of its
+    registry base version (same static cmake recipe plus variant extras), and
+    the handoff names carry the variant tag. Only kind=fork entries are
+    source-buildable here; plugin/prebuilt entries need a matching LLVM
+    dev sysroot or ship binaries already.
+    """
+    if variant not in VARIANTS:
+        print(f"Error: Unknown variant {variant!r}. Registered: {', '.join(sorted(VARIANTS)) or '(none)'}")
+        sys.exit(1)
+    entry = VARIANTS[variant]
+    kind = entry.get("kind", "fork")
+    if kind != "fork":
+        print(f"Error: Variant {variant!r} is kind={kind!r}, not a source fork build.")
+        print(f"  note: {entry.get('note', 'no build path')}")
+        sys.exit(1)
+    base = entry.get("base", "tbd")
+    if version_override and version_override != base:
+        print(f"Error: --version {version_override} does not match {variant} base {base}.")
+        sys.exit(1)
+    if not base or base == "tbd":
+        print(f"Error: Variant {variant!r} has no base version mapped yet (version-to-version basis required).")
+        sys.exit(1)
+    version = base
+    if not platform_key:
+        platform_key = f"{detect_os()}-{detect_arch()}"
+    allowed = entry.get("platforms", ["linux-amd64", "linux-arm64"])
+    if platform_key not in allowed:
+        print(f"Error: Variant {variant!r} does not list platform {platform_key}. Allowed: {', '.join(allowed) or '(none)'}")
+        sys.exit(1)
+
+    # --- Step 1: Clone the fork (shallow, default branch head) ---
+    src_dir = Path(f"ob-{variant}")
+    if not (src_dir / ".git").exists():
+        run(["git", "clone", "--depth", "1", entry["repo"], str(src_dir)])
+    else:
+        print(f"[skip] {src_dir} already cloned.")
+    llvm_dir = src_dir / "llvm"
+    if not llvm_dir.is_dir():
+        print(f"Error: {src_dir} has no llvm/ source dir; expected an llvm-project-rooted fork.")
+        print(f"  top level: {', '.join(sorted(p.name for p in src_dir.iterdir()))}")
+        sys.exit(1)
+
+    # --- Step 2: CMake configure (regular static recipe + variant extras) ---
+    build_dir = src_dir / "build"
+    build_dir.mkdir(exist_ok=True)
+    if platform_key == "linux-amd64":
+        cmake_flags = cmake_args_linux_amd64(version)
+    elif platform_key == "linux-arm64":
+        cmake_flags = cmake_args_linux_arm64(version)
+    else:
+        print(f"Unsupported target platform parameter: {platform_key}")
+        sys.exit(1)
+    cmake_flags = cmake_flags + list(entry.get("cmake_extra", []))
+
+    # --- Step 3: Build the ob tool targets (targets only, not the world) ---
+    targets = OB_EXTRA_TARGETS + active_tools(version)
+    run(["cmake", "-S", str(llvm_dir), "-B", str(build_dir)] + cmake_flags)
+    run(["cmake", "--build", str(build_dir), "--config", "Release", "--target"] + targets)
+
+    # --- Step 4: Variant handoff (separate tree, variant-tagged names) ---
+    staging_root = Path(os.getcwd()) / "tools" / "toolchain" / "clang-ob"
+    staging_root.mkdir(parents=True, exist_ok=True)
+    src_bin_dir = build_dir / "bin"
+    if not src_bin_dir.exists():
+        print(f"Error: Internal compiler output path missing at {src_bin_dir}")
+        sys.exit(1)
+    checksum_lines = []
+    for tool in targets:
+        src_bin = src_bin_dir / tool
+        if not src_bin.exists():
+            print(f"[Warning] Targeted binary artifact missing: {tool}")
+            continue
+        unique_name = f"{tool}-{version}_{platform_key}-{variant}"
+        dest_bin = staging_root / unique_name
+        shutil.copy2(src_bin, dest_bin)
+        print(f"[Handoff Success] Staged: tools/toolchain/clang-ob/{unique_name}")
+        checksum_lines.append(f"{sha512_file(dest_bin)}  {unique_name}\n")
+    if checksum_lines:
+        checksum_file = staging_root / f"SHA512SUMS-{version}_{platform_key}-{variant}"
+        with open(checksum_file, "w") as cs_file:
+            cs_file.writelines(checksum_lines)
+        print(f"[Handoff Success] Generated signatures table at: {checksum_file.name}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Static Clang Tools Builder")
-    parser.add_argument("--version", required=True, help="LLVM major version (e.g., 12, 17)")
+    parser.add_argument("--version", required=False, default=None, help="LLVM major version (e.g., 12, 17)")
     parser.add_argument("--platform", help="Target platform architecture pair")
+    parser.add_argument("--variant", required=False, default=None, help="Obfuscator variant from ob-variants.json (e.g., Pluto-Obfuscator)")
     args = parser.parse_args()
 
+    if args.variant:
+        build_variant(args.variant, args.platform, args.version)
+        return
+
+    if not args.version:
+        print("Error: --version is required unless --variant is given.")
+        sys.exit(1)
     version = args.version
     platform_key = args.platform if args.platform else f"{detect_os()}-{detect_arch()}"
 

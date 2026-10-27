@@ -1,0 +1,264 @@
+{
+  "_doc": "Obfuscator variant registry for static builds. family = pass-style family (mllvm/xllvm/ollvm). kind = fork (in-tree LLVM fork, source-buildable) | plugin (out-of-tree pass, needs matching LLVM dev sysroot) | prebuilt (shipped binaries, register only). Version-to-version basis: each variant parallels the regular build of its base. NOT listed: obpo-plugin (IDA/Hex-Rays cloud plugin, not clang), movfuscator (lcc-based, not clang), cpullvm-toolchain (Qualcomm LLVM fork toolchain, not an obfuscator).",
+  "chain_front": {
+    "name": "Khaos-master",
+    "repo": "https://github.com/015stray91/Khaos-master.git",
+    "base": "9",
+    "note": "NOT a build target (LLVM 9, outside 12-22). Khaos -O0 emit feeds the clang-12 ob tools, so the 12-set must keep IR and -mllvm pass compatibility with Khaos output."
+  },
+  "variants": {
+    "Pluto-Obfuscator": {
+      "repo": "https://github.com/015stray91/Pluto-Obfuscator.git",
+      "base": "12",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "lineage": {
+        "parent": "Ylarod/Pluto-Obfuscator",
+        "source": "bluesadi/Pluto"
+      }
+    },
+    "HikariSummer": {
+      "repo": "https://github.com/015stray91/HikariSummer.git",
+      "base": "12",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "lineage": {
+        "parent": "Lessica/HikariSummer",
+        "source": "Lessica/HikariSummer"
+      }
+    },
+    "Obfvious": {
+      "repo": "https://github.com/015stray91/Obfvious.git",
+      "base": "12",
+      "family": "ollvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "note": "Integral part of clang (invoked via clang.exe); upstream builds on Windows, linux build unverified, may need porting. In-tree: integral part of clang (llvm/ + clang/ in repo).",
+      "lineage": {
+        "parent": "nimrodpar/Obfvious",
+        "source": "nimrodpar/Obfvious"
+      }
+    },
+    "ObfuscatorNDK": {
+      "repo": "https://github.com/015stray91/ObfuscatorNDK.git",
+      "base": "12",
+      "family": "mllvm",
+      "kind": "prebuilt",
+      "platforms": [],
+      "note": "Prebuilt NDK23/Windows package (clang 12.0.9, -mllvm -fla -bcf -sub -sobf), not a source build. Register only.",
+      "lineage": {
+        "parent": "Ant-tree/ObfuscatorNDK",
+        "source": "Ant-tree/ObfuscatorNDK"
+      }
+    },
+    "Buer-Obfuscator": {
+      "repo": "https://github.com/015stray91/Buer-Obfuscator.git",
+      "base": "14",
+      "family": "xllvm",
+      "kind": "plugin",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "lineage": {
+        "parent": "Ylarod/Buer-Obfuscator",
+        "source": "Ylarod/Buer-Obfuscator"
+      },
+      "note": "Out-of-tree: builds libObfuscator.so, loaded via -fpass-plugin. Needs LLVM 14 dev sysroot."
+    },
+    "obfuscator-llvm": {
+      "repo": "https://github.com/015stray91/obfuscator-llvm.git",
+      "base": "14",
+      "family": "xllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "note": "Out-of-tree pass plugin; builds against llvmorg-14.0.6, needs matching LLVM dev sysroot. eshard NPM plugin; -fpass-plugin / -load-pass-plugin UX.",
+      "lineage": {
+        "parent": "eshard/obfuscator-llvm",
+        "source": "eshard/obfuscator-llvm"
+      }
+    },
+    "Hikari": {
+      "repo": "https://github.com/015stray91/Hikari.git",
+      "base": "15",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "lineage": {
+        "parent": "HikariObfuscator/Hikari",
+        "source": "HikariObfuscator/Hikari"
+      }
+    },
+    "HimitsuObfuscator": {
+      "repo": "https://github.com/015stray91/HimitsuObfuscator.git",
+      "base": "17",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "note": "Lightweight, stable, gpl-free llvm-17 obfuscator for linux. Flag-driven: -mllvm -sobf on its in-tree clang build.",
+      "lineage": {
+        "parent": "HimitsuShell/HimitsuObfuscator",
+        "source": "HimitsuShell/HimitsuObfuscator"
+      }
+    },
+    "Kotoamatsukami": {
+      "repo": "https://github.com/015stray91/Kotoamatsukami.git",
+      "base": "17",
+      "family": "xllvm",
+      "kind": "plugin",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "note": "LLVM-17 new pass manager style. Out-of-tree NPM project (own driver + passes, no llvm/ in repo). Needs LLVM 17 dev sysroot.",
+      "lineage": {
+        "parent": "zzzcccyyyggg/Kotoamatsukami",
+        "source": "zzzcccyyyggg/Kotoamatsukami"
+      }
+    },
+    "o-mvll": {
+      "repo": "https://github.com/015stray91/o-mvll.git",
+      "base": "17",
+      "family": "xllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "note": "Python-driven, loaded via -fpass-plugin; built against NDK r26d LLVM. Needs matching LLVM dev sysroot.",
+      "lineage": {
+        "parent": "bmax121/o-mvll",
+        "source": "open-obfuscator/o-mvll"
+      }
+    },
+    "Hikari-LLVM19": {
+      "repo": "https://github.com/015stray91/Hikari-LLVM19.git",
+      "base": "19",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "note": "Covers LLVM 19-20; registered against base 19.",
+      "lineage": {
+        "parent": "Aethereux/Hikari-LLVM19",
+        "source": "Aethereux/Hikari-LLVM19"
+      }
+    },
+    "ollvm": {
+      "repo": "https://github.com/015stray91/ollvm.git",
+      "base": "22",
+      "family": "ollvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "note": "Legacy in-tree fork (branch ollvm-22.x), direct llvm-project lineage via und3ath/ollvm. NOT Hikari/Pluto derived. Superseded by xollvm; kept for reference builds.",
+      "lineage": {
+        "parent": "und3ath/ollvm",
+        "source": "llvm/llvm-project"
+      }
+    },
+    "xollvm": {
+      "repo": "https://github.com/015stray91/xollvm.git",
+      "base": "22",
+      "family": "xllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "note": "Successor to ollvm: annotation-driven, new pass manager, zero LLVM source edits. Plugs into stock LLVM 22 (also 23) via LLVM_EXTERNAL_PROJECTS or -fpass-plugin. Needs matching LLVM dev sysroot.",
+      "lineage": {
+        "parent": "und3ath/xollvm",
+        "source": "und3ath/xollvm"
+      }
+    },
+    "Hikari-fix-LLVM22": {
+      "repo": "https://github.com/015stray91/Hikari-fix-LLVM22.git",
+      "base": "22",
+      "family": "mllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "note": "Out-of-tree pass plugin (loads into clang/opt); needs an LLVM 22 dev sysroot, not a standalone fork build.",
+      "lineage": {
+        "parent": "Fadavvi/Hikari-fix-LLVM22",
+        "source": "PPKunOfficial/Hikari-fix"
+      }
+    },
+    "kagura": {
+      "repo": "https://github.com/015stray91/kagura.git",
+      "base": [
+        "17",
+        "18",
+        "19",
+        "20",
+        "21",
+        "22"
+      ],
+      "family": "xllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "lineage": {
+        "parent": "qusamulab/kagura",
+        "source": "qusamulab/kagura"
+      },
+      "note": "NPM toolkit (flattening, string encryption, VM virtualization, anti-tamper), -fpass-plugin, no LLVM tree edits. One codebase spans LLVM 17-22; needs per-version LLVM dev sysroot per build."
+    },
+    "Obscura": {
+      "repo": "https://github.com/015stray91/Obscura.git",
+      "base": [
+        "13",
+        "16",
+        "17",
+        "19"
+      ],
+      "family": "xllvm",
+      "kind": "plugin",
+      "platforms": [],
+      "lineage": {
+        "parent": "assemblew/Obscura",
+        "source": "assemblew/Obscura"
+      },
+      "note": "Hikari/O-MVLL successor generation (C/C++/ObjC/Swift), -fpass-plugin. Per-base status: 13 Generally Stable, 16 Untested, 17 Stable, 19.1.5 Stable."
+    },
+    "Hallucina": {
+      "repo": "https://github.com/015stray91/Hallucina.git",
+      "base": "17",
+      "family": "mllvm",
+      "kind": "fork",
+      "cmake_extra": [],
+      "platforms": [
+        "linux-amd64",
+        "linux-arm64"
+      ],
+      "lineage": {
+        "parent": "smadi0x86/Hallucina",
+        "source": "smadi0x86/Hallucina"
+      },
+      "note": "In-tree generated clang (LLVM 17), flag-driven -mllvm -irobf family (indbr/icall/indgv/cff). Niche purpose: confuse LLM clients via MCP disassembler servers."
+    }
+  }
+}
