@@ -336,7 +336,11 @@ def main() -> None:
 
     # --- Step 3: Run the Configurations & Compile ---
     run(["cmake", f"-S", str(release_dir / "llvm"), f"-B", str(build_dir)] + cmake_flags)
-    run(["cmake", "--build", str(build_dir), "--config", "Release"])
+    # Build only the shippable tool targets (upstream parity). A bare
+    # `cmake --build` builds ALL, including test tools like c-index-test
+    # which needs libclang_static (not built in this config) -> ld fail.
+    run(["cmake", "--build", str(build_dir), "--config", "Release",
+         "--target"] + active_tools(version))
 
     # =========================================================================
     # SYSTEMATIC HANDOFF LOGIC
