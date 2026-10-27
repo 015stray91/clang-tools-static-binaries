@@ -178,6 +178,7 @@ def cmake_args_linux_amd64(version: str) -> list[str]:
         "-DBUILD_SHARED_LIBS=OFF",
         "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra",
         "-DLLVM_BUILD_STATIC=ON",
+        "-DLLVM_ENABLE_TERMINFO=OFF",
         "-DCMAKE_BUILD_TYPE=MinSizeRel",
         "-DCMAKE_CXX_FLAGS=-s -flto",
     ]
@@ -190,6 +191,7 @@ def cmake_args_linux_arm64(version: str) -> list[str]:
         "-DBUILD_SHARED_LIBS=OFF",
         "-DLLVM_ENABLE_PROJECTS=clang;clang-tools-extra",
         "-DLLVM_BUILD_STATIC=ON",
+        "-DLLVM_ENABLE_TERMINFO=OFF",
         "-DCMAKE_BUILD_TYPE=MinSizeRel",
         "-DCMAKE_CXX_FLAGS=-s -flto",
     ]
