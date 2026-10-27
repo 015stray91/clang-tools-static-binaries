@@ -82,6 +82,23 @@ def active_tools(version: str) -> list[str]:
     return tools
 
 
+def source_info(version: str) -> tuple[str, str, Path, Path]:
+    """Derive (release, url, tarball, release_dir) from releases.json.
+
+    releases.json maps a major version to its source name
+    (e.g. "12" -> "llvm-project-12.0.1.src"); the download URL, the
+    tarball name, and the top source directory all derive from that
+    name so they cannot drift apart.
+    """
+    release = RELEASES[version]
+    ver_tag = release[len("llvm-project-"):-len(".src")]
+    url = (
+        "https://github.com/llvm/llvm-project/releases/download/"
+        f"llvmorg-{ver_tag}/{release}.tar.xz"
+    )
+    return release, url, Path(f"{release}.tar.xz"), Path(release)
+
+
 def run(cmd: list[str], **kwargs: Any) -> None:
     """Run a command, raising CalledProcessError on failure."""
     print(f"\n>>> {' '.join(str(c) for c in cmd)}", flush=True)
@@ -288,20 +305,10 @@ def main() -> None:
         print(f"Error: Unknown version {version!r}. Available versions: {', '.join(RELEASES.keys())}")
         sys.exit(1)
 
-    url = RELEASES[version]
-    tarball = Path(f"llvm-project-{version}.src.tar.xz")
+    _, url, tarball, release_dir = source_info(version)
     
-    # Resolve the directory naming conventions used inside the tarball archive
-    if version in ("12", "13"):
-        release_dir = Path(f"llvm-project-{version}.0.1.src")
-    else:
-        release_dir = Path(f"llvm-project-{version}.0.0.src")
-
-    # If the minor version differs in your specific releases.json, handle catch-all checks
-    if not release_dir.exists():
-        possible_dirs = list(Path(".").glob(f"llvm-project-{version}.*.src"))
-        if possible_dirs:
-            release_dir = possible_dirs[0]
+    # Tarball, URL, and source dir all derive from releases.json via
+    # source_info() above, so they cannot drift apart.
 
     # --- Step 1: Download & Extract ---
     download_file(url, tarball)
