@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-u24:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -25,14 +25,10 @@ jobs:
       - name: Run build derivation tests
         run: python3 test_build.py
 
-      - name: Install Toolchain and Map GCC 10
+      - name: Install Toolchain (real GCC 11)
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake build-essential
-          
-          # Force legacy toolchain mappings to the system default compiler
-          sudo ln -s /usr/bin/gcc /usr/bin/gcc-10
-          sudo ln -s /usr/bin/g++ /usr/bin/g++-10
+          sudo apt-get install -y cmake build-essential gcc-11 g++-11
 
       - name: Initialize GitHub Release Target
         run: |

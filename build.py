@@ -165,8 +165,14 @@ def unpack_tarball(tarball: Path, release: str, extra_excludes: list[str]) -> No
 
 def get_linux_compiler_args(version: str) -> list[str]:
     major = int(version.split(".")[0])
-    # Clang 12 & 13 need legacy GCC 10. Clang 14-17 map natively to standard GCC 12
-    gcc_ver = "10" if major < 14 else "12"
+    # Period-correct host compilers (newer GCC miscompiles old tblgen: sig 139).
+    # Clang 12-13 -> GCC 10 (u22.04), Clang 14-17 -> GCC 11 (u22.04), 18+ -> GCC 12.
+    if major < 14:
+        gcc_ver = "10"
+    elif major < 18:
+        gcc_ver = "11"
+    else:
+        gcc_ver = "12"
     return [
         f"-DCMAKE_C_COMPILER=gcc-{gcc_ver}",
         f"-DCMAKE_CXX_COMPILER=g++-{gcc_ver}"

@@ -15,6 +15,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build
 
 
+class TestCompilerMapping(unittest.TestCase):
+    def test_period_correct_host_gcc(self):
+        cases = {"12": "11" if False else "10", "13": "10", "14": "11",
+                 "15": "11", "16": "11", "17": "11", "20": "12", "22": "12"}
+        for version, gcc in cases.items():
+            with self.subTest(version=version):
+                args = build.get_linux_compiler_args(version + ".0.0")
+                self.assertIn(f"-DCMAKE_C_COMPILER=gcc-{gcc}", args)
+                self.assertIn(f"-DCMAKE_CXX_COMPILER=g++-{gcc}", args)
+
+
 class TestSourceInfo(unittest.TestCase):
     def test_every_release_has_valid_url(self):
         for version, release in build.RELEASES.items():
